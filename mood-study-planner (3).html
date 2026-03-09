@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MoodFlow — Adaptive Study Planner</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#0a0d14;--surface:#111520;--card:#161c2d;--border:#1f2840;
+  --text:#e8eaf2;--muted:#5c6480;
+  --accent1:#5b8cff;--accent2:#ff6b9d;--accent3:#43e8b0;--accent4:#f7c059;
+  --glow1:rgba(91,140,255,0.18);--glow2:rgba(255,107,157,0.18);
+  --radius:16px;--radius-sm:10px;--transition:0.35s cubic-bezier(0.4,0,0.2,1);
+}
+html{scroll-behavior:smooth;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+
+/* ORBS */
+.bg-orbs{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;}
+.orb{position:absolute;border-radius:50%;filter:blur(80px);opacity:0.22;animation:drift 18s ease-in-out infinite alternate;}
+.orb1{width:520px;height:520px;background:var(--accent1);top:-160px;left:-120px;animation-duration:20s;}
+.orb2{width:420px;height:420px;background:var(--accent2);bottom:-120px;right:-100px;animation-duration:14s;animation-delay:-4s;}
+.orb3{width:320px;height:320px;background:var(--accent3);top:40%;left:50%;animation-duration:17s;animation-delay:-8s;}
+@keyframes drift{from{transform:translate(0,0) scale(1);}to{transform:translate(60px,40px) scale(1.12);}}
+
+/* AUTH SCREEN */
+#auth-screen{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;}
+.auth-box{position:relative;z-index:1;background:var(--card);border:1px solid var(--border);border-radius:24px;padding:44px 40px 36px;width:100%;max-width:440px;box-shadow:0 24px 80px rgba(0,0,0,0.55);animation:fadeUp 0.6s ease both;}
+.auth-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.7rem;text-align:center;margin-bottom:6px;letter-spacing:-0.5px;}
+.auth-logo span{color:var(--accent1);}
+.auth-logo em{color:var(--accent2);font-style:normal;}
+.auth-sub{text-align:center;color:var(--muted);font-size:0.82rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:32px;}
+.auth-tabs{display:flex;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:28px;}
+.auth-tab{flex:1;padding:11px;text-align:center;cursor:pointer;font-family:'Syne',sans-serif;font-size:0.82rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);transition:var(--transition);background:transparent;border:none;}
+.auth-tab.active{background:var(--accent1);color:#fff;}
+.auth-panel{display:none;}
+.auth-panel.active{display:block;animation:fadeUp 0.4s ease both;}
+.field{margin-bottom:18px;}
+.field label{display:block;font-size:0.75rem;font-family:'Syne',sans-serif;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.field-wrap{position:relative;}
+.field-wrap .f-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:1rem;pointer-events:none;}
+.field input{width:100%;padding:13px 42px 13px 42px;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.92rem;outline:none;transition:border-color 0.25s,box-shadow 0.25s;}
+.field input:focus{border-color:var(--accent1);box-shadow:0 0 0 3px var(--glow1);}
+.field input::placeholder{color:var(--muted);}
+.eye-btn{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;padding:4px;transition:color 0.2s;}
+.eye-btn:hover{color:var(--text);}
+.strength-wrap{margin-top:8px;}
+.strength-bar{height:4px;border-radius:2px;background:var(--border);overflow:hidden;}
+.strength-fill{height:100%;border-radius:2px;width:0;transition:width 0.4s,background 0.4s;}
+.strength-label{font-size:0.7rem;color:var(--muted);margin-top:5px;}
+.auth-meta{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;font-size:0.82rem;}
+.remember{display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--muted);}
+.remember input{accent-color:var(--accent1);width:15px;height:15px;cursor:pointer;}
+.forgot{color:var(--accent1);text-decoration:none;font-size:0.82rem;transition:opacity 0.2s;}
+.forgot:hover{opacity:0.7;}
+.auth-btn{width:100%;padding:15px;border:none;border-radius:var(--radius-sm);font-family:'Syne',sans-serif;font-size:0.95rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;color:#fff;background:linear-gradient(135deg,var(--accent1),#7b5ea7,var(--accent2));background-size:200% 200%;animation:gradShift 4s ease infinite;transition:transform 0.2s,box-shadow 0.2s;}
+.auth-btn:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(91,140,255,.35);}
+.auth-btn:active{transform:translateY(0);}
+.auth-btn:disabled{opacity:0.55;cursor:not-allowed;transform:none;}
+.or-divider{display:flex;align-items:center;gap:12px;margin:22px 0;color:var(--muted);font-size:0.78rem;}
+.or-divider::before,.or-divider::after{content:'';flex:1;height:1px;background:var(--border);}
+.social-row{display:flex;gap:10px;}
+.social-btn{flex:1;padding:11px;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;font-size:0.82rem;font-family:'DM Sans',sans-serif;color:var(--text);display:flex;align-items:center;justify-content:center;gap:8px;transition:var(--transition);}
+.social-btn:hover{border-color:var(--accent1);color:var(--accent1);}
+.auth-msg{padding:11px 16px;border-radius:var(--radius-sm);font-size:0.82rem;margin-bottom:16px;display:none;animation:fadeUp 0.3s ease;}
+.auth-msg.error{background:rgba(255,107,157,.12);border:1px solid rgba(255,107,157,.3);color:#ff8ab4;}
+.auth-msg.success{background:rgba(67,232,176,.12);border:1px solid rgba(67,232,176,.3);color:var(--accent3);}
+.auth-msg.visible{display:block;}
+
+/* USER CHIP */
+.user-chip{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--border);border-radius:50px;padding:5px 14px 5px 5px;}
+.user-avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--accent1),var(--accent2));display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:0.78rem;color:#fff;flex-shrink:0;}
+.user-name-chip{font-family:'Syne',sans-serif;font-size:0.82rem;font-weight:700;}
+.logout-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.75rem;padding:4px 8px;border-radius:6px;transition:var(--transition);margin-left:4px;}
+.logout-btn:hover{color:var(--accent2);background:rgba(255,107,157,.1);}
+
+/* APP */
+#app-screen{display:none;}
+#app-screen.visible{display:block;animation:fadeUp 0.5s ease both;}
+.wrapper{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:0 24px 80px;}
+header{display:flex;align-items:center;justify-content:space-between;padding:28px 0 20px;border-bottom:1px solid var(--border);margin-bottom:48px;}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.6rem;letter-spacing:-0.5px;}
+.logo span{color:var(--accent1);}
+.logo em{color:var(--accent2);font-style:normal;}
+.header-right{display:flex;align-items:center;gap:16px;}
+.tagline{font-size:0.78rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;}
+.hero{text-align:center;margin-bottom:60px;animation:fadeUp 0.9s ease both;}
+.hero h1{font-family:'Syne',sans-serif;font-size:clamp(2rem,5vw,3.4rem);font-weight:800;line-height:1.1;margin-bottom:16px;background:linear-gradient(135deg,var(--accent1) 0%,var(--accent2) 50%,var(--accent3) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.hero p{color:var(--muted);font-size:1.05rem;max-width:520px;margin:0 auto;line-height:1.7;}
+.section-label{font-family:'Syne',sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:18px;}
+.mood-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:14px;margin-bottom:40px;}
+.mood-btn{background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius);padding:22px 16px 18px;cursor:pointer;text-align:center;transition:var(--transition);position:relative;}
+.mood-btn:hover{transform:translateY(-4px);border-color:var(--accent1);}
+.mood-btn.active{border-color:var(--accent1);background:var(--surface);box-shadow:0 0 0 3px var(--glow1),0 8px 32px var(--glow1);transform:translateY(-4px);}
+.mood-btn[data-mood="motivated"].active{border-color:var(--accent3);box-shadow:0 0 0 3px rgba(67,232,176,.2),0 8px 32px rgba(67,232,176,.15);}
+.mood-btn[data-mood="stressed"].active{border-color:var(--accent2);box-shadow:0 0 0 3px var(--glow2),0 8px 32px var(--glow2);}
+.mood-btn[data-mood="tired"].active{border-color:#9b8bff;box-shadow:0 0 0 3px rgba(155,139,255,.2),0 8px 32px rgba(155,139,255,.15);}
+.mood-btn[data-mood="anxious"].active{border-color:var(--accent4);box-shadow:0 0 0 3px rgba(247,192,89,.2),0 8px 32px rgba(247,192,89,.15);}
+.mood-btn[data-mood="calm"].active{border-color:#5bc8ff;box-shadow:0 0 0 3px rgba(91,200,255,.2),0 8px 32px rgba(91,200,255,.15);}
+.mood-btn[data-mood="distracted"].active{border-color:#ff9b5c;box-shadow:0 0 0 3px rgba(255,155,92,.2),0 8px 32px rgba(255,155,92,.15);}
+.mood-emoji{font-size:2.2rem;margin-bottom:10px;display:block;line-height:1;}
+.mood-name{font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:700;margin-bottom:4px;}
+.mood-desc{font-size:0.72rem;color:var(--muted);line-height:1.4;}
+.slider-wrap{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:24px 28px;margin-bottom:32px;}
+.slider-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;}
+.slider-header span:first-child{font-family:'Syne',sans-serif;font-weight:600;font-size:0.95rem;}
+.slider-val{font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;color:var(--accent1);}
+input[type=range]{-webkit-appearance:none;width:100%;height:6px;border-radius:3px;background:var(--border);outline:none;cursor:pointer;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--accent1);box-shadow:0 0 12px var(--glow1);transition:transform 0.2s;}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.2);}
+.slider-labels{display:flex;justify-content:space-between;margin-top:10px;font-size:0.72rem;color:var(--muted);}
+.subjects-wrap{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:24px 28px;margin-bottom:32px;}
+.subjects-wrap h3{font-family:'Syne',sans-serif;font-weight:600;margin-bottom:18px;font-size:0.95rem;}
+.subject-grid{display:flex;flex-wrap:wrap;gap:10px;}
+.subject-tag{padding:8px 18px;border:1.5px solid var(--border);border-radius:50px;font-size:0.82rem;cursor:pointer;transition:var(--transition);background:transparent;color:var(--text);user-select:none;}
+.subject-tag:hover{border-color:var(--accent1);color:var(--accent1);}
+.subject-tag.picked{background:var(--accent1);border-color:var(--accent1);color:#fff;font-weight:600;}
+.generate-btn{display:block;width:100%;padding:18px;border:none;border-radius:var(--radius);font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;letter-spacing:1px;cursor:pointer;background:linear-gradient(135deg,var(--accent1),#7b5ea7,var(--accent2));background-size:200% 200%;color:#fff;animation:gradShift 4s ease infinite;transition:transform 0.2s,box-shadow 0.2s;margin-bottom:48px;text-transform:uppercase;}
+.generate-btn:hover{transform:translateY(-2px);box-shadow:0 8px 36px rgba(91,140,255,.3);}
+@keyframes gradShift{0%{background-position:0% 50%;}50%{background-position:100% 50%;}100%{background-position:0% 50%;}}
+#plan-section{display:none;animation:fadeUp 0.7s ease both;}
+#plan-section.visible{display:block;}
+.plan-header{display:flex;align-items:center;gap:14px;margin-bottom:28px;flex-wrap:wrap;}
+.plan-header h2{font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;}
+.mood-badge{padding:5px 16px;border-radius:50px;font-size:0.78rem;font-family:'Syne',sans-serif;font-weight:700;letter-spacing:1px;}
+.plan-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:28px;}
+@media(max-width:640px){.plan-grid{grid-template-columns:1fr;}}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px 22px;}
+.stat-label{font-size:0.72rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;}
+.stat-value{font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;}
+.timeline{margin-bottom:36px;}
+.timeline-title{font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;margin-bottom:20px;}
+.session-block{display:flex;align-items:flex-start;gap:16px;padding:18px 22px;border-radius:var(--radius);border:1px solid var(--border);background:var(--card);margin-bottom:12px;position:relative;overflow:hidden;transition:transform 0.2s;animation:slideIn 0.4s ease both;}
+.session-block:hover{transform:translateX(4px);}
+.session-block::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;}
+.session-block.study::before{background:var(--accent1);}
+.session-block.break::before{background:var(--accent3);}
+.session-block.review::before{background:var(--accent4);}
+.session-block.light::before{background:#9b8bff;}
+.session-icon{font-size:1.5rem;flex-shrink:0;margin-top:2px;}
+.session-info{flex:1;}
+.session-name{font-family:'Syne',sans-serif;font-weight:700;font-size:0.95rem;margin-bottom:4px;}
+.session-meta{font-size:0.8rem;color:var(--muted);}
+.session-duration{font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;color:var(--accent1);flex-shrink:0;}
+.session-block.break .session-duration{color:var(--accent3);}
+.session-block.review .session-duration{color:var(--accent4);}
+.session-block.light .session-duration{color:#9b8bff;}
+.priority-badge{font-size:0.65rem;font-family:'Syne',sans-serif;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:2px 8px;border-radius:4px;margin-left:8px;vertical-align:middle;}
+.p-high{background:rgba(255,107,157,.2);color:var(--accent2);}
+.p-medium{background:rgba(91,140,255,.2);color:var(--accent1);}
+.p-low{background:rgba(67,232,176,.2);color:var(--accent3);}
+.tips-section{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:24px 28px;margin-bottom:28px;}
+.tips-section h3{font-family:'Syne',sans-serif;font-weight:700;margin-bottom:16px;font-size:1rem;}
+.tip-item{display:flex;gap:12px;align-items:flex-start;margin-bottom:12px;font-size:0.88rem;line-height:1.6;color:var(--muted);}
+.tip-item:last-child{margin-bottom:0;}
+.tip-dot{color:var(--accent3);font-size:1.1rem;flex-shrink:0;}
+.progress-wrap{margin-bottom:36px;}
+.progress-label{display:flex;justify-content:space-between;font-size:0.8rem;color:var(--muted);margin-bottom:8px;}
+.progress-bar{height:8px;border-radius:4px;background:var(--border);overflow:hidden;}
+.progress-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--accent1),var(--accent3));transition:width 1s ease;width:0;}
+.reset-btn{display:inline-flex;align-items:center;gap:8px;background:transparent;border:1.5px solid var(--border);border-radius:var(--radius-sm);color:var(--muted);font-family:'DM Sans',sans-serif;font-size:0.85rem;padding:10px 20px;cursor:pointer;transition:var(--transition);}
+.reset-btn:hover{border-color:var(--accent2);color:var(--accent2);}
+.timer-widget{display:none;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:24px 28px;margin-bottom:28px;text-align:center;}
+.timer-widget.visible{display:block;}
+.timer-display{font-family:'Syne',sans-serif;font-size:3.5rem;font-weight:800;color:var(--accent1);letter-spacing:4px;margin:10px 0;}
+.timer-label{font-size:0.78rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;}
+.timer-btns{display:flex;gap:12px;justify-content:center;margin-top:16px;flex-wrap:wrap;}
+.timer-btn{padding:10px 22px;border-radius:var(--radius-sm);border:1.5px solid;font-family:'Syne',sans-serif;font-weight:700;font-size:0.82rem;cursor:pointer;transition:var(--transition);background:transparent;}
+.timer-btn.start{border-color:var(--accent3);color:var(--accent3);}
+.timer-btn.pause{border-color:var(--accent4);color:var(--accent4);}
+.timer-btn.reset-t{border-color:var(--muted);color:var(--muted);}
+.timer-btn:hover{opacity:0.75;transform:translateY(-1px);}
+@keyframes fadeUp{from{opacity:0;transform:translateY(28px);}to{opacity:1;transform:translateY(0);}}
+@keyframes slideIn{from{opacity:0;transform:translateX(-18px);}to{opacity:1;transform:translateX(0);}}
+.session-block:nth-child(1){animation-delay:.05s;}
+.session-block:nth-child(2){animation-delay:.12s;}
+.session-block:nth-child(3){animation-delay:.19s;}
+.session-block:nth-child(4){animation-delay:.26s;}
+.session-block:nth-child(5){animation-delay:.33s;}
+.session-block:nth-child(6){animation-delay:.40s;}
+.session-block:nth-child(7){animation-delay:.47s;}
+.session-block:nth-child(8){animation-delay:.54s;}
+#toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 28px;font-size:0.88rem;color:var(--text);transition:transform 0.4s cubic-bezier(.34,1.56,.64,1),opacity 0.4s;opacity:0;z-index:999;box-shadow:0 8px 40px rgba(0,0,0,.5);pointer-events:none;}
+#toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
+@media(max-width:480px){.auth-box{padding:30px 20px 26px;}.social-row{flex-direction:column;}.auth-meta{flex-direction:column;gap:10px;align-items:flex-start;}.header-right{gap:8px;}.tagline{display:none;}}
+</style>
+</head>
+<body>
+
+<div class="bg-orbs">
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+</div>
+
+<!-- ════════════ AUTH SCREEN ════════════ -->
+<div id="auth-screen">
+  <div class="auth-box">
+    <div class="auth-logo"><span>Mood</span><em>Flow</em></div>
+    <div class="auth-sub">Adaptive Study Planner</div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login"  onclick="switchTab('login')">Sign In</button>
+      <button class="auth-tab"        id="tab-signup" onclick="switchTab('signup')">Create Account</button>
+    </div>
+
+    <div class="auth-msg" id="authMsg"></div>
+
+    <!-- LOGIN -->
+    <div class="auth-panel active" id="panel-login">
+      <div class="field">
+        <label>Email Address</label>
+        <div class="field-wrap">
+          <span class="f-icon">✉️</span>
+          <input type="email" id="login-email" placeholder="you@email.com" autocomplete="email"/>
+        </div>
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <div class="field-wrap">
+          <span class="f-icon">🔒</span>
+          <input type="password" id="login-pass" placeholder="Enter your password" autocomplete="current-password"/>
+          <button class="eye-btn" onclick="toggleEye('login-pass',this)" type="button">👁</button>
+        </div>
+      </div>
+      <div class="auth-meta">
+        <label class="remember"><input type="checkbox" id="remember-me"/> Remember me</label>
+        <a href="#" class="forgot" onclick="showForgot(event)">Forgot password?</a>
+      </div>
+      <button class="auth-btn" id="loginBtn" onclick="handleLogin()">Sign In →</button>
+      <div class="or-divider">or continue with</div>
+      <div class="social-row">
+        <button class="social-btn" onclick="socialLogin('Google')">🌐 Google</button>
+        <button class="social-btn" onclick="socialLogin('GitHub')">🐙 GitHub</button>
+      </div>
+      <p style="text-align:center;margin-top:18px;font-size:0.78rem;color:var(--muted);">Demo: <strong style="color:var(--accent1)">demo@moodflow.app</strong> / <strong style="color:var(--accent1)">Demo1234</strong></p>
+    </div>
+
+    <!-- SIGNUP -->
+    <div class="auth-panel" id="panel-signup">
+      <div class="field">
+        <label>Full Name</label>
+        <div class="field-wrap">
+          <span class="f-icon">👤</span>
+          <input type="text" id="signup-name" placeholder="Your full name" autocomplete="name"/>
+        </div>
+      </div>
+      <div class="field">
+        <label>Email Address</label>
+        <div class="field-wrap">
+          <span class="f-icon">✉️</span>
+          <input type="email" id="signup-email" placeholder="you@email.com" autocomplete="email"/>
+        </div>
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <div class="field-wrap">
+          <span class="f-icon">🔒</span>
+          <input type="password" id="signup-pass" placeholder="Min. 8 characters" autocomplete="new-password" oninput="checkStrength(this.value)"/>
+          <button class="eye-btn" onclick="toggleEye('signup-pass',this)" type="button">👁</button>
+        </div>
+        <div class="strength-wrap">
+          <div class="strength-bar"><div class="strength-fill" id="strFill"></div></div>
+          <div class="strength-label" id="strLabel">Enter a password</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Confirm Password</label>
+        <div class="field-wrap">
+          <span class="f-icon">🔑</span>
+          <input type="password" id="signup-confirm" placeholder="Repeat your password" autocomplete="new-password"/>
+          <button class="eye-btn" onclick="toggleEye('signup-confirm',this)" type="button">👁</button>
+        </div>
+      </div>
+      <button class="auth-btn" id="signupBtn" onclick="handleSignup()">Create Account →</button>
+      <div class="or-divider">or sign up with</div>
+      <div class="social-row">
+        <button class="social-btn" onclick="socialLogin('Google')">🌐 Google</button>
+        <button class="social-btn" onclick="socialLogin('GitHub')">🐙 GitHub</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ════════════ APP SCREEN ════════════ -->
+<div id="app-screen">
+<div class="wrapper">
+
+  <header>
+    <div class="logo"><span>Mood</span><em>Flow</em></div>
+    <div class="header-right">
+      <div class="tagline">Adaptive Study Planner</div>
+      <div class="user-chip">
+        <div class="user-avatar" id="userAvatar">?</div>
+        <span class="user-name-chip" id="userNameChip">Student</span>
+        <button class="logout-btn" onclick="handleLogout()">Sign out</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="hero">
+    <h1>Study Smarter,<br>Feel Better</h1>
+    <p>Tell us how you're feeling right now — we'll build the perfect study session tailored to your emotional state and energy level.</p>
+  </div>
+
+  <div class="section-label">Step 01 — How are you feeling?</div>
+  <div class="mood-grid">
+    <button class="mood-btn" data-mood="motivated"><span class="mood-emoji">🔥</span><div class="mood-name">Motivated</div><div class="mood-desc">Ready to crush it</div></button>
+    <button class="mood-btn" data-mood="calm"><span class="mood-emoji">😌</span><div class="mood-name">Calm</div><div class="mood-desc">Focused &amp; relaxed</div></button>
+    <button class="mood-btn" data-mood="stressed"><span class="mood-emoji">😰</span><div class="mood-name">Stressed</div><div class="mood-desc">Overwhelmed &amp; anxious</div></button>
+    <button class="mood-btn" data-mood="tired"><span class="mood-emoji">😴</span><div class="mood-name">Tired</div><div class="mood-desc">Low energy, drowsy</div></button>
+    <button class="mood-btn" data-mood="anxious"><span class="mood-emoji">😟</span><div class="mood-name">Anxious</div><div class="mood-desc">Nervous, unsettled</div></button>
+    <button class="mood-btn" data-mood="distracted"><span class="mood-emoji">🌀</span><div class="mood-name">Distracted</div><div class="mood-desc">Hard to concentrate</div></button>
+  </div>
+
+  <div class="section-label">Step 02 — Energy Level</div>
+  <div class="slider-wrap">
+    <div class="slider-header">
+      <span>How much energy do you have?</span>
+      <span class="slider-val" id="energyVal">5</span>
+    </div>
+    <input type="range" id="energySlider" min="1" max="10" value="5"/>
+    <div class="slider-labels"><span>😩 Drained</span><span>😐 Okay</span><span>⚡ Full power</span></div>
+  </div>
+
+  <div class="section-label">Step 03 — Subjects to study</div>
+  <div class="subjects-wrap">
+    <h3>Pick the subjects you want to cover today</h3>
+    <div class="subject-grid">
+      <span class="subject-tag" data-subject="Mathematics">📐 Mathematics</span>
+      <span class="subject-tag" data-subject="Physics">⚛️ Physics</span>
+      <span class="subject-tag" data-subject="Chemistry">🧪 Chemistry</span>
+      <span class="subject-tag" data-subject="Biology">🧬 Biology</span>
+      <span class="subject-tag" data-subject="History">📜 History</span>
+      <span class="subject-tag" data-subject="Literature">📖 Literature</span>
+      <span class="subject-tag" data-subject="Computer Science">💻 Computer Sci</span>
+      <span class="subject-tag" data-subject="Economics">📊 Economics</span>
+      <span class="subject-tag" data-subject="Geography">🌍 Geography</span>
+      <span class="subject-tag" data-subject="Languages">🗣️ Languages</span>
+    </div>
+  </div>
+
+  <button class="generate-btn" id="generateBtn">✨ Generate My Study Plan</button>
+
+  <section id="plan-section">
+    <div class="plan-header">
+      <h2>Your Study Plan</h2>
+      <span class="mood-badge" id="moodBadge"></span>
+    </div>
+    <div class="plan-grid" id="statGrid"></div>
+    <div class="progress-wrap">
+      <div class="progress-label"><span>Plan Coverage</span><span id="progressLabel">0%</span></div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    </div>
+    <div class="timer-widget" id="timerWidget">
+      <div class="timer-label">Session Timer</div>
+      <div class="timer-display" id="timerDisplay">00:00</div>
+      <div id="timerSessionName" style="font-size:0.85rem;color:var(--muted);margin-bottom:4px;"></div>
+      <div class="timer-btns">
+        <button class="timer-btn start"   onclick="startTimer()">▶ Start</button>
+        <button class="timer-btn pause"   onclick="pauseTimer()">⏸ Pause</button>
+        <button class="timer-btn reset-t" onclick="resetTimer()">↺ Reset</button>
+      </div>
+    </div>
+    <div class="timeline">
+      <div class="timeline-title">📋 Session Schedule</div>
+      <div id="timelineBlocks"></div>
+    </div>
+    <div class="tips-section">
+      <h3>💡 Personalized Tips for your mood</h3>
+      <div id="tipsList"></div>
+    </div>
+    <button class="reset-btn" onclick="resetPlan()">↺ Start Over</button>
+  </section>
+
+</div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ══════════ DSA: HashMap (user database) ══════════ */
+class HashMap{constructor(){this.map={};}set(k,v){this.map[k]=v;}get(k){return this.map[k]||null;}has(k){return k in this.map;}}
+const userDB=new HashMap();
+userDB.set('demo@moodflow.app',{name:'Demo Student',pass:'Demo1234'});
+
+/* ══════════ DSA: Min-Heap Priority Queue ══════════ */
+class MinHeap{constructor(){this.heap=[];}push(i){this.heap.push(i);this._up(this.heap.length-1);}pop(){if(!this.heap.length)return null;if(this.heap.length===1)return this.heap.pop();const t=this.heap[0];this.heap[0]=this.heap.pop();this._down(0);return t;}_swap(a,b){[this.heap[a],this.heap[b]]=[this.heap[b],this.heap[a]];}_up(i){while(i>0){const p=Math.floor((i-1)/2);if(this.heap[p].priority<=this.heap[i].priority)break;this._swap(p,i);i=p;}}_down(i){const n=this.heap.length;while(true){let s=i,l=2*i+1,r=2*i+2;if(l<n&&this.heap[l].priority<this.heap[s].priority)s=l;if(r<n&&this.heap[r].priority<this.heap[s].priority)s=r;if(s===i)break;this._swap(i,s);i=s;}}size(){return this.heap.length;}}
+
+/* ══════════ DSA: Stack & Queue ══════════ */
+class Stack{constructor(){this.d=[];}push(i){this.d.push(i);}pop(){return this.d.pop();}peek(){return this.d[this.d.length-1];}isEmpty(){return!this.d.length;}}
+class Queue{constructor(){this.d=[];}enqueue(i){this.d.push(i);}dequeue(){return this.d.shift();}isEmpty(){return!this.d.length;}}
+
+/* ══════════ AUTH STATE ══════════ */
+let currentUser=null;
+
+function switchTab(t){
+  ['login','signup'].forEach(x=>{
+    document.getElementById('tab-'+x).classList.toggle('active',x===t);
+    document.getElementById('panel-'+x).classList.toggle('active',x===t);
+  });
+  clearMsg();
+}
+function toggleEye(id,btn){const i=document.getElementById(id);i.type=i.type==='password'?'text':'password';btn.textContent=i.type==='password'?'👁':'🙈';}
+function checkStrength(v){const f=document.getElementById('strFill'),l=document.getElementById('strLabel');let s=0;if(v.length>=8)s++;if(/[A-Z]/.test(v))s++;if(/[0-9]/.test(v))s++;if(/[^A-Za-z0-9]/.test(v))s++;const lv=[{w:'0%',bg:'transparent',t:'Enter a password'},{w:'25%',bg:'#ff6b9d',t:'Weak'},{w:'50%',bg:'#f7c059',t:'Fair'},{w:'75%',bg:'#5b8cff',t:'Good'},{w:'100%',bg:'#43e8b0',t:'Strong 💪'}][s];f.style.width=lv.w;f.style.background=lv.bg;l.textContent=lv.t;}
+function showMsg(t,type='error'){const e=document.getElementById('authMsg');e.textContent=t;e.className='auth-msg '+type+' visible';}
+function clearMsg(){document.getElementById('authMsg').className='auth-msg';}
+function isEmail(e){return/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);}
+
+function handleLogin(){
+  clearMsg();
+  const email=document.getElementById('login-email').value.trim().toLowerCase();
+  const pass=document.getElementById('login-pass').value;
+  if(!email||!pass){showMsg('⚠️ Please fill in all fields.');return;}
+  if(!isEmail(email)){showMsg('⚠️ Enter a valid email address.');return;}
+  const btn=document.getElementById('loginBtn');
+  btn.disabled=true;btn.textContent='Signing in…';
+  setTimeout(()=>{
+    const u=userDB.get(email);
+    if(!u||u.pass!==pass){showMsg('❌ Wrong email or password. Try demo@moodflow.app / Demo1234');btn.disabled=false;btn.textContent='Sign In →';return;}
+    currentUser={email,name:u.name};
+    enterApp();
+  },700);
+}
+
+function handleSignup(){
+  clearMsg();
+  const name=document.getElementById('signup-name').value.trim();
+  const email=document.getElementById('signup-email').value.trim().toLowerCase();
+  const pass=document.getElementById('signup-pass').value;
+  const confirm=document.getElementById('signup-confirm').value;
+  if(!name||!email||!pass||!confirm){showMsg('⚠️ Please fill in all fields.');return;}
+  if(!isEmail(email)){showMsg('⚠️ Enter a valid email address.');return;}
+  if(pass.length<8){showMsg('⚠️ Password must be at least 8 characters.');return;}
+  if(pass!==confirm){showMsg('⚠️ Passwords do not match.');return;}
+  if(userDB.has(email)){showMsg('⚠️ An account with this email already exists.');return;}
+  const btn=document.getElementById('signupBtn');
+  btn.disabled=true;btn.textContent='Creating account…';
+  setTimeout(()=>{
+    userDB.set(email,{name,pass});
+    showMsg('✅ Account created! Signing you in…','success');
+    setTimeout(()=>{currentUser={email,name};enterApp();},800);
+  },800);
+}
+
+function socialLogin(p){showMsg(`🔗 ${p} sign-in is for demo — use email/password or try demo@moodflow.app`);}
+function showForgot(e){e.preventDefault();showMsg('📧 Password reset link sent! (Demo mode)','success');}
+
+function enterApp(){
+  document.getElementById('auth-screen').style.display='none';
+  const app=document.getElementById('app-screen');
+  app.classList.add('visible');
+  const initials=currentUser.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  document.getElementById('userAvatar').textContent=initials;
+  document.getElementById('userNameChip').textContent=currentUser.name.split(' ')[0];
+}
+
+function handleLogout(){
+  currentUser=null;resetPlan();
+  document.getElementById('app-screen').classList.remove('visible');
+  document.getElementById('auth-screen').style.display='flex';
+  document.getElementById('login-email').value='';
+  document.getElementById('login-pass').value='';
+  clearMsg();switchTab('login');
+}
+
+/* Enter key submit */
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Enter')return;
+  if(document.getElementById('panel-login').classList.contains('active'))handleLogin();
+  else if(document.getElementById('panel-signup').classList.contains('active'))handleSignup();
+});
+
+/* ══════════ PLANNER ══════════ */
+const MOOD_CONFIG={
+  motivated:{label:'🔥 Motivated',color:'#43e8b0',bg:'rgba(67,232,176,.18)',studyDur:50,breakDur:10,sessions:4,tips:['Strike while the iron is hot — tackle your hardest subject first.','Use the Pomodoro technique: 50 min study, 10 min break to sustain peak performance.','Set stretch goals — your motivation window is precious, maximise it.','Stay hydrated and keep snacks nearby so you don\'t break your flow state.']},
+  calm:{label:'😌 Calm',color:'#5bc8ff',bg:'rgba(91,200,255,.18)',studyDur:45,breakDur:12,sessions:3,tips:['Your relaxed state is ideal for deep reading and conceptual understanding.','Avoid multitasking — calm focus goes furthest on one subject at a time.','This is a great time for revision and consolidating notes.','Light background music (lo-fi / classical) can enhance your calm state.']},
+  stressed:{label:'😰 Stressed',color:'#ff6b9d',bg:'rgba(255,107,157,.18)',studyDur:25,breakDur:15,sessions:3,tips:['Shorter sessions reduce overwhelm. 25 minutes is proven to feel manageable.','Start with a subject you\'re confident in to build momentum.','Take a 2-minute box breathing break: inhale 4s, hold 4s, exhale 4s, hold 4s.','Write down your worries before studying to clear mental space.']},
+  tired:{label:'😴 Tired',color:'#9b8bff',bg:'rgba(155,139,255,.18)',studyDur:20,breakDur:20,sessions:2,tips:['Keep sessions very short. Even 20 minutes of focused study is valuable.','Avoid new complex topics — review familiar material instead.','A 15–20 minute power nap before studying can significantly improve retention.','Stand or walk while reviewing flashcards to fight drowsiness.']},
+  anxious:{label:'😟 Anxious',color:'#f7c059',bg:'rgba(247,192,89,.18)',studyDur:30,breakDur:15,sessions:3,tips:['Break large tasks into the smallest possible micro-steps to reduce anxiety.','Ground yourself: name 5 things you can see, 4 you can touch, 3 you can hear.','Avoid checking grades or deadlines right before a session.','Reward yourself after each session — positive reinforcement resets anxiety loops.']},
+  distracted:{label:'🌀 Distracted',color:'#ff9b5c',bg:'rgba(255,155,92,.18)',studyDur:25,breakDur:10,sessions:3,tips:['Put your phone in another room or use an app blocker.','Use the "2-minute rule": if a distraction takes under 2 min, do it then return.','Start with the boring subject you\'ve been avoiding — clarity follows completion.','Body-doubling: study with a friend or on a virtual study stream.']}
+};
+const SDIFF={'Mathematics':9,'Physics':8,'Chemistry':7,'Computer Science':7,'Economics':6,'Biology':6,'History':5,'Geography':4,'Literature':4,'Languages':5};
+
+let selectedMood=null,selectedSubjects=[],timerInterval=null,timerSeconds=0,timerRunning=false;
+
+document.querySelectorAll('.mood-btn').forEach(b=>{b.addEventListener('click',()=>{document.querySelectorAll('.mood-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');selectedMood=b.dataset.mood;});});
+const eSlider=document.getElementById('energySlider'),eVal=document.getElementById('energyVal');
+eSlider.addEventListener('input',()=>{eVal.textContent=eSlider.value;eVal.style.color=`hsl(${200+((eSlider.value-1)/9)*130},90%,65%)`;});
+document.querySelectorAll('.subject-tag').forEach(t=>{t.addEventListener('click',()=>{const s=t.dataset.subject;if(t.classList.toggle('picked'))selectedSubjects.push(s);else selectedSubjects=selectedSubjects.filter(x=>x!==s);});});
+document.getElementById('generateBtn').addEventListener('click',generatePlan);
+
+function generatePlan(){
+  if(!selectedMood){showToast('⚠️ Please select your mood first!');return;}
+  if(!selectedSubjects.length){showToast('⚠️ Pick at least one subject!');return;}
+  const cfg=MOOD_CONFIG[selectedMood],energy=parseInt(eSlider.value,10),ef=energy/10;
+  const studyMin=Math.round(cfg.studyDur*(0.5+ef*0.5));
+  const breakMin=Math.round(cfg.breakDur*(1.5-ef*0.5));
+  const numS=Math.max(1,Math.round(cfg.sessions*ef+0.5));
+  const pq=new MinHeap();
+  selectedSubjects.forEach(s=>{const d=SDIFF[s]||5;pq.push({subject:s,priority:10-d,difficulty:d});});
+  const bq=new Queue();
+  for(let i=0;i<numS+1;i++)bq.enqueue({type:'break',duration:breakMin});
+  const ps=new Stack(),sched=[],subs=[];
+  while(pq.size()>0)subs.push(pq.pop());
+  for(let s=0;s<numS;s++){
+    const sub=subs[s%subs.length],pri=sub.difficulty>=8?'high':sub.difficulty>=6?'medium':'low';
+    sched.push({type:'study',name:sub.subject,duration:studyMin,priority:pri,difficulty:sub.difficulty,icon:sEmoji(sub.subject),meta:`Focus Block ${s+1} · Difficulty ${sub.difficulty}/10`});
+    ps.push(sub.subject);
+    if(s<numS-1)sched.push({type:'break',name:'Rest & Recharge',duration:breakMin,icon:'☕',meta:'Take a mindful break — stretch, breathe, hydrate',priority:null});
+  }
+  if(!ps.isEmpty())sched.push({type:'review',name:`Quick Review: ${ps.peek()}`,duration:Math.max(10,Math.round(studyMin*0.3)),icon:'🔁',meta:'Spaced repetition consolidates memory',priority:'medium'});
+  if(energy<=4)sched.push({type:'light',name:'Wind-Down Reading',duration:15,icon:'📚',meta:'Easy reading to end the session gently',priority:'low'});
+  const tStudy=sched.filter(s=>s.type!=='break').reduce((a,s)=>a+s.duration,0);
+  const tBreak=sched.filter(s=>s.type==='break').reduce((a,s)=>a+s.duration,0);
+  const eff=Math.round((tStudy/(tStudy+tBreak))*100);
+  renderPlan(sched,cfg,tStudy,tBreak,eff);
+}
+
+function renderPlan(sched,cfg,tStudy,tBreak,eff){
+  document.getElementById('moodBadge').textContent=cfg.label;
+  document.getElementById('moodBadge').style.cssText+=`;background:${cfg.bg};color:${cfg.color}`;
+  const stats=[{label:'Total Study Time',value:`${tStudy} min`},{label:'Break Time',value:`${tBreak} min`},{label:'Sessions',value:sched.filter(s=>s.type==='study').length},{label:'Focus Efficiency',value:`${eff}%`}];
+  document.getElementById('statGrid').innerHTML=stats.map(s=>`<div class="stat-card"><div class="stat-label">${s.label}</div><div class="stat-value" style="color:${cfg.color}">${s.value}</div></div>`).join('');
+  setTimeout(()=>{document.getElementById('progressFill').style.width=eff+'%';document.getElementById('progressLabel').textContent=eff+'%';},200);
+  document.getElementById('timelineBlocks').innerHTML=sched.map(s=>{const pb=s.priority?`<span class="priority-badge p-${s.priority}">${s.priority}</span>`:'';return`<div class="session-block ${s.type}"><span class="session-icon">${s.icon}</span><div class="session-info"><div class="session-name">${s.name}${pb}</div><div class="session-meta">${s.meta}</div></div><div class="session-duration">${s.duration}m</div></div>`;}).join('');
+  document.getElementById('tipsList').innerHTML=MOOD_CONFIG[selectedMood].tips.map(t=>`<div class="tip-item"><span class="tip-dot">◆</span><span>${t}</span></div>`).join('');
+  const fs=sched.find(s=>s.type==='study');
+  if(fs){timerSeconds=fs.duration*60;document.getElementById('timerSessionName').textContent=`Current: ${fs.name}`;updateTimerDisplay();document.getElementById('timerWidget').classList.add('visible');}
+  const ps=document.getElementById('plan-section');ps.classList.add('visible');ps.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function updateTimerDisplay(){const m=String(Math.floor(timerSeconds/60)).padStart(2,'0'),s=String(timerSeconds%60).padStart(2,'0');document.getElementById('timerDisplay').textContent=`${m}:${s}`;}
+function startTimer(){if(timerRunning)return;timerRunning=true;timerInterval=setInterval(()=>{if(timerSeconds<=0){clearInterval(timerInterval);timerRunning=false;showToast('✅ Session complete! Great work.');document.getElementById('timerDisplay').style.color='var(--accent3)';return;}timerSeconds--;updateTimerDisplay();},1000);}
+function pauseTimer(){clearInterval(timerInterval);timerRunning=false;}
+function resetTimer(){pauseTimer();timerSeconds=MOOD_CONFIG[selectedMood]?.studyDur*60||1500;document.getElementById('timerDisplay').style.color='var(--accent1)';updateTimerDisplay();}
+function sEmoji(n){return{'Mathematics':'📐','Physics':'⚛️','Chemistry':'🧪','Biology':'🧬','History':'📜','Literature':'📖','Computer Science':'💻','Economics':'📊','Geography':'🌍','Languages':'🗣️'}[n]||'📚';}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3200);}
+function resetPlan(){document.querySelectorAll('.mood-btn').forEach(b=>b.classList.remove('active'));selectedMood=null;document.querySelectorAll('.subject-tag').forEach(t=>t.classList.remove('picked'));selectedSubjects=[];eSlider.value=5;eVal.textContent='5';document.getElementById('plan-section').classList.remove('visible');pauseTimer();document.getElementById('timerWidget').classList.remove('visible');window.scrollTo({top:0,behavior:'smooth'});}
+</script>
+</body>
+</html>
